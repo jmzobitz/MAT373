@@ -5,7 +5,7 @@
 n_dice <- 3
 
 # Define the different moves, and the probabilities associated with each:
-outcomes <- data.frame(rolls = as.factor(c("left","right","center","star")),
+outcomes <- data.frame(rolls = as.factor(c("left","right","star","center")),
                        probabilities = c(1/6,1/6,1/6,3/6) )
 
 
