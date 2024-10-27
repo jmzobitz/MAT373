@@ -26,13 +26,13 @@ hyper_binom_plot <- function(N) {
   y_binom <- dbinom(x,n,p)
   
   # Binomial PMFs for the two distributions
-  y1 <- dbinom(x, size = n1, prob = p1)
-  y2 <- dbinom(x, size = n2, prob = p2)
+  #y1 <- dbinom(x, size = n1, prob = p1)
+  #y2 <- dbinom(x, size = n2, prob = p2)
   
   # Create the first PMF plot
   plot(x, y_hyper, type = "h", lwd = 2, col = "blue", 
        xlab = "Number of Successes", ylab = "Probability", 
-       main = "Comparison of Two PMFs", ylim = c(0, max(y1, y2)))
+       main = "Comparison of Two PMFs", ylim = c(0, max(y_hyper, y_binom)))
   
   # Add points for the first PMF
   points(x, y_hyper, pch = 19, col = "blue")
