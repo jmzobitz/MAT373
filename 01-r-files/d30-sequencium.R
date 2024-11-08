@@ -2,13 +2,60 @@
 
 # Sequencium simulation
 
+# First we define some helper functions
 
-# We need to define two helper functions: 
-# (1) If a point is a neighbor of current points in the grid (function are_neighbors)
-# (2) Conduct a turn that randomly selects a place to play (function sequencium turn)
-# (3) Run a whole game of sequencium, returning the final grid (function sequencium_game)
+# Make a starting grid of play
+make_starting_grid <- function(grid_size=4) {
+  
+  # Define the player names
+  players <- c("B","R")
+  
+  upper_diag <- sample(players,1)
+  lower_diag <- players[!(players %in% upper_diag )]
+  # Randomly associate each player on the diagonal
+  diag_value <-   c(rep(upper_diag,times = grid_size/2),rep(lower_diag,times = grid_size/2))
+  
+  # Create a blank matrix
+  matrix_data <- matrix(data = "N",nrow=grid_size,ncol=grid_size)
+  
+  # Create the square matrix
+  diag(matrix_data) <- diag_value
+  
+  value_matrix = matrix(data = 0,nrow=grid_size,ncol=grid_size)
+  
+  diag(value_matrix) <- c(1:(grid_size/2),(grid_size/2):1)
+  
+  
+  # Convert matrix to data frame, set up row and column names
+  df <- as.data.frame(matrix_data)
+  df$x_coord <- nrow(df):1  # Add an 'x' coordinate
+  
+  # Pivot to long format
+  long_df <- df |>
+    pivot_longer(-x_coord, names_to = "y_coord", values_to = "player") |>
+    mutate(y_coord = as.integer(gsub("V", "", y_coord)))  # Convert column names to y-coordinates
+  
+  # Convert matrix to data frame, set up row and column names
+  df_value <- as.data.frame(value_matrix)
+  df_value$x_coord <- nrow(df_value):1  # Add an 'x' coordinate
+  
+  # Pivot to long format
+  long_df_value <- df_value |>
+    pivot_longer(-x_coord, names_to = "y_coord", values_to = "value") |>
+    mutate(y_coord = as.integer(gsub("V", "", y_coord)))  # Convert column names to y-coordinates
+  
+  # Now join the result
+  
+  starting_grid <- long_df |>
+    inner_join(long_df_value,by=c("x_coord","y_coord")) |>
+    mutate(point = 1:grid_size^2) |>
+    relocate(point)
+  
+  return(starting_grid)
+  
+}
 
-
+# Determine if a function is allowed to be played on
 are_neighbors <- function(test_point, list_points) {
   # Given a test point and a list of all points, determine if they are neighbors of each other using an adjacency test.  Include diagonals.
   
@@ -65,15 +112,22 @@ sequencium_turn <- function(input_player,curr_grid) {
   
 }
 
-sequencium_game <- function(input_grid) {
+# Play an entire game of sequencium - we have R going first
+sequencium_game <- function(input_grid,random_start = TRUE) {
   
   grid <- input_grid
   in_play <- (grid |> filter(player == "N") |> nrow()) > 0
   
+  if(random_start) {
+  # Randomly determine who goes first
+  player_order <- sample(c("B","R"),size=2,replace=FALSE)
+  } else {
+    player_order<-c("B","R")
+  }
   
   while(in_play) {
-    grid <- sequencium_turn("R",grid)
-    grid <- sequencium_turn("B",grid)
+    grid <- sequencium_turn(player_order[[1]],grid)
+    grid <- sequencium_turn(player_order[[2]],grid)
     in_play <- (grid |> filter(player == "N") |> nrow()) > 0
   }
   
@@ -83,52 +137,30 @@ sequencium_game <- function(input_grid) {
   
 }
 
-starting_grid <- expand_grid(x_coord=1:4,y_coord=1:4) |>
-  mutate(point = 1:n()) |>
-  relocate(point) |>
-  mutate(player = "N",
-         player = if_else(point %in% c(13,10),"R",player),
-         player = if_else(point %in% c(4,7),"B",player),
-         value = 0,
-         value = if_else(point %in% c(4,13),1,value),
-         value = if_else(point %in% c(10,7),2,value))
 
+# Make the starting grid
+starting_grid <- make_starting_grid(4)
+
+
+# Visualize the starting grid
 starting_grid |>
   filter(player !="N") |>
   ggplot(aes(x=x_coord,y=y_coord,color=player)) + 
   geom_label(aes(label=value))
 
-## Make a plot of the current configuration
-grid |>
-  filter(player !="N") |>
-  ggplot(aes(x=x_coord,y=y_coord,color=player)) + 
-  geom_label(aes(label=value))
+
+# Sample run of the code are_neighbors
+are_neighbors(test_point = tibble(x_coord=4,y_coord=3),
+              list_point = tibble(x_coord=c(3,1),y_coord=c(4,2)))
 
 
+# See a sample turn
+sequencium_turn("B",starting_grid)
 
-
-
-sequencium_game <- function(input_grid) {
-  
-  grid <- input_grid
-  in_play <- (grid |> filter(player == "N") |> nrow()) > 0
-  
-  
-  while(in_play) {
-    grid <- sequencium_turn("R",grid)
-    grid <- sequencium_turn("B",grid)
-    in_play <- (grid |> filter(player == "N") |> nrow()) > 0
-  }
-  
-  
-  return(grid)
-  
-  
-}
 
 # Now onto the results.  We play a round and then determine the winners, with "T" meaning a tie
-results <- tibble(round = 1:10,
-                  grid = map(.x=round,.f=~sequencium_game(starting_grid)),
+results <- tibble(round = 1:100,
+                  grid = map(.x=round,.f=~sequencium_game(starting_grid,random_start = TRUE)),
                   winners = map_chr(.x=grid,.f=function(.x) {
                     curr_winner <- .x |> slice_max(value) |> pull(player) |> unique()
                     if(length(curr_winner)>1) {curr_winner = "T"}
@@ -140,6 +172,8 @@ results <- tibble(round = 1:10,
                   score = map_dbl(.x=grid,.f=~max(.x$value))
 )
 
-# What is an advantageous point to play? (Analyze each of the grid points to determine where you landed) - for winner and losers of grid
+# Report out the results:
 
-
+results |> 
+  count(winners) |>
+  mutate(prop = n / sum(n))
