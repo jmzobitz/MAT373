@@ -1,4 +1,4 @@
-### MAT 373, Day 33
+### MAT 373, Day 34
 ### Part 2: Apply MCMC to decode a text
 
 # Define functions:
@@ -9,6 +9,7 @@
 # (5) randomly swap two characters
 # (6) metropolis hastings on the cipher
 
+library(tidyverse)
 # Step 1: Define the input data for decoding - this contains the frequence of one or two letter word combinations in war and peace
 url <- "https://raw.githubusercontent.com/jmzobitz/MAT373/main/01-r-files/metropolis-hastings-cipher.Rda"
 

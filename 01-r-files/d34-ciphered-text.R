@@ -1,9 +1,11 @@
-### MAT 373, Day 33
+### MAT 373, Day 34
 ### Part 1: Create a cipher to code a message
 
 # Define encode/decode functions:
 # (1) encode using the cipher
 # (2) decode using the cipher
+
+library(tidyverse)
 
 # Encode a text using a cipher
 encode_text <- function(text, cipher) {
